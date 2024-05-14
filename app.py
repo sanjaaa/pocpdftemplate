@@ -103,3 +103,6 @@ def update_graph_and_list(add_clicks, remove_clicks, x_coord, y_coord):
 
 if __name__ == '__main__':
     app.run_server(debug=True)
+
+# Add this line at the end to make the `server` available for Gunicorn
+server = app.server

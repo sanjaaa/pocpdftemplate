@@ -1,1 +1,1 @@
-web: gunicorn interactive_graph:app.server
+web: gunicorn app:server
