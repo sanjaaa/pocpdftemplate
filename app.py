@@ -26,6 +26,17 @@ app.layout = dbc.Container([
             dbc.Button("Add Point", id="add-point-button", color="primary", className="mr-1"),
             dbc.Button("Remove Point", id="remove-point-button", color="danger", className="mr-1")
         ], width=12)
+    ]),
+    dbc.Row([
+        dbc.Col([
+            html.H4("How to Use the App"),
+            html.P("1. Enter the X and Y coordinates in the input fields and click 'Add Point' to add a point at the specified coordinates."),
+            html.P("2. If the coordinates are left empty and 'Add Point' is clicked, a point will be added at a random location."),
+            html.P("3. Click 'Remove Point' to remove the last added point."),
+            html.P("4. The list on the right shows the points sorted by their Y-axis value from top to bottom. Points close to each other on the Y-axis are further sorted from left to right."),
+            html.H4("Sorting Explanation"),
+            html.P("The points are first sorted by their Y-axis values in descending order (from top to bottom). For points that are close to each other on the Y-axis (within a tolerance), they are further sorted by their X-axis values in ascending order (left to right)."),
+        ], width=12)
     ])
 ], fluid=True)
 
