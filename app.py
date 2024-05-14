@@ -90,6 +90,51 @@ def create_plot():
         )
     )
 
+# Helper function to calculate the max y distance in a group
+def max_y_distance(group):
+    if not group:
+        return 0
+    y_values = [p[1] for p in group]
+    return max(y_values) - min(y_values)
+
+# Helper function to find the optimal grouping
+def find_optimal_grouping(points, tolerance):
+    points = sorted(points, key=lambda p: -p[1])  # Sort points by y descending
+    groups = []
+    current_group = []
+
+    for point in points:
+        if not current_group:
+            current_group.append(point)
+        else:
+            max_y = max(current_group, key=lambda p: p[1])[1]
+            min_y = min(current_group, key=lambda p: p[1])[1]
+            current_max_distance = max_y - min_y
+            new_max_distance = max_y_distance(current_group + [point])
+
+            if new_max_distance < tolerance:
+                current_group.append(point)
+            else:
+                # Try to split the group optimally
+                new_group = [point]
+                remaining_group = current_group[:]
+                
+                for p in current_group:
+                    temp_group = new_group + [p]
+                    temp_remaining_group = remaining_group[:]
+                    temp_remaining_group.remove(p)
+                    if max_y_distance(temp_group) < max_y_distance(temp_remaining_group + [p]):
+                        new_group.append(p)
+                        remaining_group.remove(p)
+                
+                groups.append(remaining_group)
+                current_group = new_group
+
+    if current_group:
+        groups.append(current_group)
+    
+    return groups
+
 # Callback to update the graph and points list when buttons are clicked
 @app.callback(
     Output('interactive-graph', 'figure'),
@@ -121,26 +166,12 @@ def update_graph_and_list(add_clicks, remove_clicks, x_coord, y_coord):
         used_names.remove(name)
         removed_names.append(name)
 
-    # Sort points by y (descending)
-    sorted_points = sorted(zip(points['x'], points['y'], points['names']), key=lambda p: -p[1])
-    
-    # Group points by y-axis tolerance and sort within each group by x-axis
-    tolerance = 1  # Tolerance for y-values to consider points close
-    grouped_points = []
-    current_group = []
+    # Prepare points data
+    point_data = list(zip(points['x'], points['y'], points['names']))
 
-    for point in sorted_points:
-        if not current_group:
-            current_group.append(point)
-        else:
-            # Ensure all points in current group are within tolerance of each other
-            if all(abs(point[1] - other[1]) < tolerance for other in current_group):
-                current_group.append(point)
-            else:
-                grouped_points.append(current_group)
-                current_group = [point]
-    if current_group:
-        grouped_points.append(current_group)
+    # Find optimal grouping
+    tolerance = 1  # Tolerance for y-values to consider points close
+    grouped_points = find_optimal_grouping(point_data, tolerance)
 
     # Sort each group by x-axis
     grouped_points = [sorted(group, key=lambda p: p[0]) for group in grouped_points]
