@@ -49,7 +49,28 @@ app.layout = dbc.Container([
 
 # Initialize points
 points = {'x': [], 'y': [], 'names': []}
-point_names = iter("abcdefghijklmnopqrstuvwxyz")
+used_names = set()
+removed_names = []
+
+# Generate point names
+def generate_point_name():
+    if removed_names:
+        return removed_names.pop(0)
+    
+    for char in 'abcdefghijklmnopqrstuvwxyz':
+        name = char
+        if name not in used_names:
+            used_names.add(name)
+            return name
+
+    i = 1
+    while True:
+        for char in 'abcdefghijklmnopqrstuvwxyz':
+            name = f'{char}{i}'
+            if name not in used_names:
+                used_names.add(name)
+                return name
+        i += 1
 
 # Create an empty plot
 def create_plot():
@@ -87,19 +108,18 @@ def update_graph_and_list(add_clicks, remove_clicks, x_coord, y_coord):
             x_coord = np.random.uniform(0, 10)
             y_coord = np.random.uniform(0, 10)
 
-        try:
-            name = next(point_names)
-        except StopIteration:
-            raise dash.exceptions.PreventUpdate
-        
+        name = generate_point_name()
         points['x'].append(x_coord)
         points['y'].append(y_coord)
         points['names'].append(f'{name} ({x_coord:.2f}, {y_coord:.2f})')
     
     elif triggered_id == 'remove-point-button' and points['x']:
-        points['x'].pop()
-        points['y'].pop()
-        points['names'].pop()
+        removed_x = points['x'].pop()
+        removed_y = points['y'].pop()
+        removed_name = points['names'].pop()
+        name = removed_name.split()[0]  # Get the name without coordinates
+        used_names.remove(name)
+        removed_names.append(name)
 
     # Sort points by y (descending)
     sorted_points = sorted(zip(points['x'], points['y'], points['names']), key=lambda p: -p[1])
@@ -113,9 +133,8 @@ def update_graph_and_list(add_clicks, remove_clicks, x_coord, y_coord):
         if not current_group:
             current_group.append(point)
         else:
-            max_y = max(current_group, key=lambda p: p[1])[1]
-            min_y = min(current_group, key=lambda p: p[1])[1]
-            if abs(point[1] - max_y) < tolerance and abs(point[1] - min_y) < tolerance:
+            # Ensure all points in current group are within tolerance of each other
+            if all(abs(point[1] - other[1]) < tolerance for other in current_group):
                 current_group.append(point)
             else:
                 grouped_points.append(current_group)
