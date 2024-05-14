@@ -84,7 +84,7 @@ def update_graph_and_list(add_clicks, remove_clicks, x_coord, y_coord):
         points['names'].pop()
 
     # Sort points by y (descending), then by x for points that are close in y
-    tolerance = 0.5  # tolerance for y-values to consider points close
+    tolerance = 1  # tolerance for y-values to consider points close
     sorted_points = sorted(zip(points['x'], points['y'], points['names']), key=lambda p: (-p[1], p[0]))
 
     sorted_within_tolerance = []
