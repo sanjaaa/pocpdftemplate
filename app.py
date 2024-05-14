@@ -35,7 +35,14 @@ app.layout = dbc.Container([
             html.P("3. Click 'Remove Point' to remove the last added point."),
             html.P("4. The list on the right shows the points sorted by their Y-axis value from top to bottom. Points close to each other on the Y-axis are further sorted from left to right."),
             html.H4("Sorting Explanation"),
-            html.P("The points are first sorted by their Y-axis values in descending order (from top to bottom). For points that are close to each other on the Y-axis (within a tolerance), they are further sorted by their X-axis values in ascending order (left to right)."),
+            html.P("The points are sorted using the following steps:"),
+            html.Ol([
+                html.Li("First, all points are sorted by their Y-axis values in descending order (from top to bottom)."),
+                html.Li("Next, points are grouped together if their Y-axis values are within a specified tolerance. This means that points that are close to each other on the Y-axis will be considered part of the same group."),
+                html.Li("Within each group, the points are then sorted by their X-axis values in ascending order (from left to right)."),
+                html.Li("Finally, the sorted points are displayed in the list on the right side of the app, with visual separators (horizontal lines) between different groups."),
+            ]),
+            html.P("This sorting method ensures that points are grouped together when they are close on the Y-axis, and within each group, they are ordered by their X-axis values. This helps in visually organizing the points on the right side panel, making it easier to understand their relative positions."),
         ], width=12)
     ])
 ], fluid=True)
@@ -94,21 +101,41 @@ def update_graph_and_list(add_clicks, remove_clicks, x_coord, y_coord):
         points['y'].pop()
         points['names'].pop()
 
-    # Sort points by y (descending), then by x for points that are close in y
-    tolerance = 1  # tolerance for y-values to consider points close
-    sorted_points = sorted(zip(points['x'], points['y'], points['names']), key=lambda p: (-p[1], p[0]))
+    # Sort points by y (descending)
+    sorted_points = sorted(zip(points['x'], points['y'], points['names']), key=lambda p: -p[1])
+    
+    # Group points by y-axis tolerance and sort within each group by x-axis
+    tolerance = 1  # Tolerance for y-values to consider points close
+    grouped_points = []
+    current_group = []
 
-    sorted_within_tolerance = []
-    i = 0
-    while i < len(sorted_points):
-        group = [sorted_points[i]]
-        while i + 1 < len(sorted_points) and abs(sorted_points[i + 1][1] - sorted_points[i][1]) < tolerance:
-            i += 1
-            group.append(sorted_points[i])
-        sorted_within_tolerance.extend(sorted(group, key=lambda p: p[0]))
-        i += 1
+    for point in sorted_points:
+        if not current_group:
+            current_group.append(point)
+        else:
+            max_y = max(current_group, key=lambda p: p[1])[1]
+            min_y = min(current_group, key=lambda p: p[1])[1]
+            if abs(point[1] - max_y) < tolerance and abs(point[1] - min_y) < tolerance:
+                current_group.append(point)
+            else:
+                grouped_points.append(current_group)
+                current_group = [point]
+    if current_group:
+        grouped_points.append(current_group)
 
-    points_list = [html.Div(f'{name}: ({x:.2f}, {y:.2f})') for x, y, name in sorted_within_tolerance]
+    # Sort each group by x-axis
+    grouped_points = [sorted(group, key=lambda p: p[0]) for group in grouped_points]
+
+    # Flatten the list
+    sorted_within_tolerance = [point for group in grouped_points for point in group]
+
+    # Create a list of HTML elements with visual separation for groups
+    points_list = []
+    for i, group in enumerate(grouped_points):
+        if i > 0:
+            points_list.append(html.Hr())  # Add a divider between groups
+        for j, (x, y, name) in enumerate(group):
+            points_list.append(html.Div(f'{name}: ({x:.2f}, {y:.2f})', style={'backgroundColor': '#f0f0f0' if j % 2 == 0 else '#ffffff'}))
 
     return create_plot(), points_list
 
